@@ -35,6 +35,9 @@ public class Runner {
 		writeToFile(readLocations(fullPath));
 	}
 
+	/**
+	 * Reading JSON from URL and parsing it to entities
+	 */
 	private List<Location> readLocations(String path) {
 		List<Location> result = new ArrayList<Location>();
 		InputStream inputStream = null;
@@ -46,18 +49,20 @@ public class Runner {
 				result.add(parseLocationJson(o));
 			}
 			return result;
-
 		} catch (IOException e) {
 			System.out.println("Failure reading locations by URL " + path);
+			return null;
 		} finally {
 			IOUtils.closeQuietly(inputStream);
 		}
-		return null;
 	}
 
+	/**
+	 * Writing results to CSV
+	 */
 	private void writeToFile(List<Location> locations) {
-		SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy_hh-mm");
-		File resultFile = new File("result-" + format.format(new Date()) + ".csv");
+		SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy_hh-mm-ss");
+		File resultFile = new File("RESULT-" + format.format(new Date()) + ".csv");
 		FileWriter fileWriter;
 		try {
 			if (!resultFile.createNewFile()) {
@@ -73,31 +78,65 @@ public class Runner {
 		try {
 			csvWriter.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("Failure closing output stream");
+			return;
 		}
+		System.out.println("Result file located: " + resultFile.getAbsolutePath());
 	}
 
+	/**
+	 * Parsing single JsonObject to entity Location
+	 */
 	private Location parseLocationJson(JsonObject object) {
 		Location location = new Location();
-		location.setId(object.getInt("_id"));
-		location.setKey(object.get("key").getValueType() != JsonValue.ValueType.NULL ? object.getString("key") : null);
-		location.setName(object.getString("name"));
-		location.setFullName(object.getString("fullName"));
-		location.setIataAirportCode(object.get("iata_airport_code").getValueType() != JsonValue.ValueType.NULL ? object
-				.getString("iata_airport_code") : null);
-		location.setType(object.getString("type"));
-		location.setCountry(object.getString("country"));
-		location.setGeoPosition(parseGeopositionJson(object.getJsonObject("geo_position")));
-		// location.setLocationId(object.get("location_id").getValueType() != JsonValue.ValueType.NULL ?
-		// Long.valueOf(object.getString("location_id")) : null);
-		location.setInEurope(object.getBoolean("inEurope"));
-		location.setCountryCode(object.getString("countryCode"));
-		location.setCoreCountry(object.getBoolean("coreCountry"));
-		location.setDistance(object.get("distance").getValueType() != JsonValue.ValueType.NULL ? object.getString("distance")
-				: null);
+		if (object.get("_id") != null) {
+			location.setId(object.getInt("_id"));
+		}
+		if (object.get("key") != null) {
+			location.setKey(object.get("key").getValueType() != JsonValue.ValueType.NULL ? object.getString("key") : null);
+		}
+		if (object.get("name") != null) {
+			location.setName(object.getString("name"));
+		}
+		if (object.get("fullName") != null) {
+			location.setFullName(object.getString("fullName"));
+		}
+		if (object.get("iata_airport_code") != null) {
+			location.setIataAirportCode(object.get("iata_airport_code").getValueType() != JsonValue.ValueType.NULL
+                    ? object.getString("iata_airport_code") : null);
+		}
+		if (object.get("type") != null) {
+			location.setType(object.getString("type"));
+		}
+		if (object.get("country") != null) {
+			location.setCountry(object.getString("country"));
+		}
+		if (object.get("geo_position") != null) {
+			location.setGeoPosition(parseGeopositionJson(object.getJsonObject("geo_position")));
+		}
+		if (object.get("location_id") != null) {
+			location.setLocationId(object.get("location_id").getValueType() != JsonValue.ValueType.NULL
+                    ? Long.valueOf(object.getString("location_id")) : null);
+		}
+		if (object.get("inEurope") != null) {
+			location.setInEurope(object.getBoolean("inEurope"));
+		}
+		if (object.get("countryCode") != null) {
+			location.setCountryCode(object.getString("countryCode"));
+		}
+		if (object.get("coreCountry") != null) {
+			location.setCoreCountry(object.getBoolean("coreCountry"));
+		}
+		if (object.get("distance") != null) {
+			location.setDistance(object.get("distance").getValueType() != JsonValue.ValueType.NULL ? object.getString("distance")
+					: null);
+		}
 		return location;
 	}
 
+	/**
+	 * Parsing GeoPosition
+	 */
 	private GeoPosition parseGeopositionJson(JsonObject object) {
 		GeoPosition geoPosition = new GeoPosition();
 		geoPosition.setLatitude(object.getJsonNumber("latitude").doubleValue());
@@ -105,6 +144,9 @@ public class Runner {
 		return geoPosition;
 	}
 
+	/**
+	 * Transforming list Location to List records which be write to CSV
+	 */
 	private List<String[]> toStringArray(List<Location> locations) {
 		List<String[]> records = new ArrayList<String[]>();
 		records.add(new String[] { "_id", "name", "type", "latitude", "longitude" });
